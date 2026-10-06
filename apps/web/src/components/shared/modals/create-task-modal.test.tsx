@@ -48,6 +48,12 @@ let workspaceId = "workspace-1";
 let projects: { id: string; name: string; slug: string }[] | undefined;
 let columnsError = false;
 let columnsFetching = false;
+let workspaceLabels: {
+  id: string;
+  name: string;
+  color: string;
+  taskId: null;
+}[] = [];
 const refetchColumns = vi.fn();
 let projectColumns:
   | { id: string; slug: string; name: string; isFinal: boolean }[]
@@ -68,6 +74,7 @@ beforeEach(() => {
   storedProject = null;
   columnsError = false;
   columnsFetching = false;
+  workspaceLabels = [];
   refetchColumns.mockImplementation(async () => ({
     data: projectColumns,
     isError: columnsError,
@@ -137,7 +144,7 @@ vi.mock("@/hooks/mutations/task/use-update-task", () => ({
 }));
 
 vi.mock("@/hooks/queries/label/use-get-labels-by-workspace", () => ({
-  default: () => ({ data: [] }),
+  default: () => ({ data: workspaceLabels }),
 }));
 
 vi.mock("@/hooks/queries/workspace/use-active-workspace", () => ({
@@ -185,6 +192,40 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("CreateTaskModal", () => {
+  it("keeps labels open for multiple selections and spaces the selected badges evenly", async () => {
+    workspaceLabels = [
+      { id: "label-1", name: "Frontend", color: "blue", taskId: null },
+      { id: "label-2", name: "Urgent", color: "red", taskId: null },
+    ];
+    render(<CreateTaskModal open projectId="project-1" onClose={vi.fn()} />, {
+      wrapper: createWrapper(),
+    });
+    const trigger = screen
+      .getByText("common:modals.createTask.labels")
+      .closest("button");
+    if (!trigger) throw new Error("Labels trigger is missing");
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole("button", { name: "Frontend" }));
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Urgent" }));
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const badges = Array.from(document.querySelectorAll('[data-slot="badge"]'));
+    expect(badges).toHaveLength(2);
+    expect(badges[0]).toHaveTextContent("Frontend");
+    expect(badges[1]).toHaveTextContent("Urgent");
+    expect(badges[0].parentElement).toHaveClass("flex-wrap", "gap-1.5");
+    for (const badge of badges) {
+      expect(badge).toHaveClass("gap-1.5", "px-2");
+      expect(badge.firstElementChild).toHaveClass("size-2", "shrink-0");
+      expect(badge.firstElementChild).not.toHaveClass("mr-1.5");
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Frontend" }));
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(document.querySelectorAll('[data-slot="badge"]')).toHaveLength(1);
+  });
+
   it("keeps unsaved input while discard confirmation is open", async () => {
     useLocation.mockReturnValue({
       pathname: "/dashboard/workspace/workspace-1/project/project-1/board",

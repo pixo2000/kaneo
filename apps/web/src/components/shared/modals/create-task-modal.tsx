@@ -1090,17 +1090,17 @@ function CreateTaskModalContent({
             )}
 
             {labels.length > 0 && (
-              <div className="flex flex-wrap mb-2">
+              <div className="flex flex-wrap gap-1.5 mb-2">
                 {labels.map((label) => (
                   <Badge
                     key={label.name}
                     color={label.color}
                     variant="outline"
-                    className="flex items-center gap-1 pl-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                    className="gap-1.5 px-2 cursor-pointer hover:bg-accent/50 transition-colors"
                     onClick={() => removeLabel(label.name)}
                   >
                     <span
-                      className="inline-block w-2 h-2 mr-1.5 rounded-full"
+                      className="size-2 shrink-0 rounded-full"
                       style={{
                         backgroundColor: resolveLabelColor(label.color),
                       }}
