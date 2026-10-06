@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import {
@@ -17,6 +18,7 @@ import {
 } from "vite-plus/test";
 
 import CreateTaskModal from "./create-task-modal";
+import { toast } from "@/lib/toast";
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -281,6 +283,10 @@ describe("CreateTaskModal", () => {
     );
     fireEvent.click(pickerTrigger);
     fireEvent.click(await screen.findByText("Beta"));
+    expect(pickerTrigger.closest("button")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
 
     fireEvent.change(
       screen.getByPlaceholderText(
@@ -301,6 +307,241 @@ describe("CreateTaskModal", () => {
       );
     });
   });
+
+  it("closes priority and assignee pickers after selecting one option", async () => {
+    render(<CreateTaskModal open projectId="project-1" onClose={vi.fn()} />, {
+      wrapper: createWrapper(),
+    });
+
+    const priorityTrigger = screen
+      .getByText("tasks:priority.no-priority")
+      .closest('[data-slot="popover-trigger"]');
+    expect(priorityTrigger).not.toBeNull();
+    fireEvent.click(priorityTrigger as HTMLElement);
+    fireEvent.click(await screen.findByText("tasks:priority.low"));
+    expect(priorityTrigger).toHaveAttribute("aria-expanded", "false");
+
+    const assigneeTrigger = screen.getByText("common:modals.createTask.assign");
+    fireEvent.click(assigneeTrigger);
+    fireEvent.click(
+      await screen.findByText("common:modals.createTask.assignUnassigned"),
+    );
+    expect(assigneeTrigger.closest("button")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it.each([undefined, "to-do", "planned"])(
+    "creates with the chosen workflow status instead of the initial status (%s)",
+    async (initialStatus) => {
+      projectColumns = [
+        { id: "todo", slug: "to-do", name: "Ready", isFinal: false },
+        { id: "done", slug: "done", name: "Finished", isFinal: true },
+      ];
+      const onClose = vi.fn();
+      render(
+        <CreateTaskModal
+          open
+          projectId="project-1"
+          status={initialStatus}
+          onClose={onClose}
+        />,
+        { wrapper: createWrapper() },
+      );
+      const trigger = screen.getByRole("button", {
+        name: "common:modals.createTask.status",
+      });
+      fireEvent.click(trigger);
+      fireEvent.click(await screen.findByText("Finished"));
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).toHaveTextContent("Finished");
+      expect(onClose).not.toHaveBeenCalled();
+      enterTitle();
+      submit();
+      await vi.waitFor(() =>
+        expect(createTask).toHaveBeenCalledWith(
+          expect.objectContaining({ status: "done", projectId: "project-1" }),
+        ),
+      );
+    },
+  );
+
+  it("reports an error rather than replacing a selected status removed before submission", async () => {
+    projectColumns = [
+      { id: "todo", slug: "to-do", name: "Ready", isFinal: false },
+      { id: "review", slug: "review", name: "Review", isFinal: false },
+    ];
+    refetchColumns.mockResolvedValue({
+      data: [projectColumns[0]],
+      isError: false,
+    });
+    render(<CreateTaskModal open projectId="project-1" onClose={vi.fn()} />, {
+      wrapper: createWrapper(),
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:modals.createTask.status" }),
+    );
+    fireEvent.click(await screen.findByText("Review"));
+    enterTitle();
+    submit();
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "common:modals.createTask.statusUnavailable",
+      ),
+    );
+    expect(createTask).not.toHaveBeenCalled();
+  });
+
+  it("treats a status-only change as unsaved input", async () => {
+    projectColumns = [
+      { id: "todo", slug: "to-do", name: "Ready", isFinal: false },
+      { id: "review", slug: "review", name: "Review", isFinal: false },
+    ];
+    const onClose = vi.fn();
+    render(<CreateTaskModal open projectId="project-1" onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:modals.createTask.status" }),
+    );
+    fireEvent.click(await screen.findByText("Review"));
+    fireEvent.click(screen.getByText("common:actions.cancel"));
+    expect(
+      await screen.findByText("common:modals.createTask.discardTitle"),
+    ).toBeVisible();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("resets a chosen status when switching projects", async () => {
+    projectColumns = [
+      { id: "todo", slug: "to-do", name: "Ready", isFinal: false },
+      { id: "review", slug: "review", name: "Review", isFinal: false },
+    ];
+    render(<CreateTaskModal open onClose={vi.fn()} />, {
+      wrapper: createWrapper(),
+    });
+    await chooseBeta();
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:modals.createTask.status" }),
+    );
+    fireEvent.click(await screen.findByText("Review"));
+    fireEvent.click(screen.getByText("Beta"));
+    fireEvent.click(await screen.findByText("Alpha"));
+    expect(
+      screen.getByRole("button", { name: "common:modals.createTask.status" }),
+    ).toHaveTextContent("Ready");
+    enterTitle();
+    submit();
+    await vi.waitFor(() =>
+      expect(createTask).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "to-do", projectId: "project-1" }),
+      ),
+    );
+  });
+
+  it("resets the status to the supplied default when creating another task", async () => {
+    projectColumns = [
+      { id: "todo", slug: "to-do", name: "Ready", isFinal: false },
+      { id: "review", slug: "review", name: "Review", isFinal: false },
+    ];
+    render(
+      <CreateTaskModal
+        open
+        projectId="project-1"
+        status="to-do"
+        onClose={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "common:modals.createTask.status" }),
+    );
+    fireEvent.click(await screen.findByText("Review"));
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "common:modals.createTask.createMore",
+      }),
+    );
+    enterTitle();
+    submit();
+    await vi.waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: "common:modals.createTask.status",
+        }),
+      ).toHaveTextContent("Ready"),
+    );
+    expect(createTask).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "review" }),
+    );
+  });
+
+  it.each(["startDate", "dueDate"])(
+    "submits the selected %s even after its calendar closes",
+    async (dateKey) => {
+      render(<CreateTaskModal open projectId="project-1" onClose={vi.fn()} />, {
+        wrapper: createWrapper(),
+      });
+      fireEvent.click(screen.getByText(`common:modals.createTask.${dateKey}`));
+      const grid = await screen.findByRole("grid");
+      const day = within(grid)
+        .getAllByRole("button")
+        .find((button) => button.textContent === "15");
+      if (!day) throw new Error("Calendar day is missing");
+      fireEvent.click(day);
+      const today = new Date();
+      const selectedDate = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        15,
+      ).toISOString();
+      enterTitle();
+      submit();
+      await vi.waitFor(() =>
+        expect(createTask).toHaveBeenCalledWith(
+          expect.objectContaining({
+            [dateKey]: selectedDate,
+          }),
+        ),
+      );
+    },
+  );
+
+  it.each([
+    ["startDate", "clearStartDate"],
+    ["dueDate", "clearDueDate"],
+  ])(
+    "closes the %s calendar after selection and clearing",
+    async (dateKey, clearKey) => {
+      const onClose = vi.fn();
+      render(<CreateTaskModal open projectId="project-1" onClose={onClose} />, {
+        wrapper: createWrapper(),
+      });
+      const trigger = screen
+        .getByText(`common:modals.createTask.${dateKey}`)
+        .closest("button");
+      if (!trigger) throw new Error("Date picker trigger is missing");
+      fireEvent.click(trigger);
+      const grid = await screen.findByRole("grid");
+      const day = within(grid)
+        .getAllByRole("button")
+        .find((button) => button.textContent === "15");
+      if (!day) throw new Error("Calendar day is missing");
+      fireEvent.click(day);
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).not.toHaveTextContent(
+        `common:modals.createTask.${dateKey}`,
+      );
+      fireEvent.click(trigger);
+      fireEvent.click(
+        await screen.findByText(`common:modals.createTask.${clearKey}`),
+      );
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(trigger).toHaveTextContent(`common:modals.createTask.${dateKey}`);
+      expect(onClose).not.toHaveBeenCalled();
+    },
+  );
 
   it("creates Home tasks in the first open custom column and shows its name", async () => {
     projectColumns = [

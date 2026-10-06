@@ -76,8 +76,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useGetColumns } from "@/hooks/queries/column/use-get-columns";
-import { getColumnIcon } from "@/lib/column";
-import { getStatusDisplayLabel } from "@/lib/i18n/domain";
 import useCreateLabel from "@/hooks/mutations/label/use-create-label";
 import useCreateTask from "@/hooks/mutations/task/use-create-task";
 import useGetCustomFieldsByProject from "@/hooks/queries/custom-field/use-get-custom-fields-by-project";
@@ -95,7 +93,9 @@ import { getPriorityIcon } from "@/lib/priority";
 import { toast } from "@/lib/toast";
 import useProjectStore from "@/store/project";
 import type Task from "@/types/task";
+import CreateTaskStatusPicker from "./create-task-status-picker";
 import { getInitialTaskColumn } from "./initial-task-column";
+import { getSelectableTaskColumns } from "./selectable-task-columns";
 
 type CreateTaskModalProps = {
   open: boolean;
@@ -256,6 +256,11 @@ function CreateTaskModalContent({
   const [labels, setLabels] = useState<Label[]>([]);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
 
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
+  const [dueDatePickerOpen, setDueDatePickerOpen] = useState(false);
+  const [priorityPickerOpen, setPriorityPickerOpen] = useState(false);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [labelsStep, setLabelsStep] = useState<PopoverStep>("select");
   const [searchValue, setSearchValue] = useState("");
@@ -266,6 +271,10 @@ function CreateTaskModalContent({
     location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? null;
   const explicitProjectId = projectId || routeProjectId || "";
   const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<{
+    projectId: string;
+    slug: string;
+  } | null>(null);
   const { data: workspaceProjects } = useGetProjects({
     workspaceId: workspace?.id || "",
   });
@@ -281,10 +290,14 @@ function CreateTaskModalContent({
     refetch: refetchColumns,
     isFetching: columnsFetching,
   } = useGetColumns(open ? resolvedProjectId : "", { refreshOnMount: true });
+  const chosenStatus =
+    selectedStatus?.projectId === resolvedProjectId
+      ? selectedStatus.slug
+      : undefined;
   const initialColumn = getInitialTaskColumn(projectColumns, status);
-  const taskStatus = status ?? initialColumn?.slug ?? "planned";
+  const taskStatus = chosenStatus ?? status ?? initialColumn?.slug ?? "planned";
   const awaitingColumns =
-    !status &&
+    (!status || chosenStatus !== undefined) &&
     Boolean(resolvedProjectId) &&
     (!projectColumns || columnsFetching || columnsError);
 
@@ -373,6 +386,8 @@ function CreateTaskModalContent({
     startDate ||
     dueDate ||
     selectedProjectId ||
+    (chosenStatus !== undefined &&
+      chosenStatus !== (status ?? initialColumn?.slug ?? "planned")) ||
     labels.length > 0 ||
     stagedAssetsRef.current.length > 0 ||
     hasCustomFieldChanges,
@@ -502,12 +517,24 @@ function CreateTaskModalContent({
     setIsSubmitting(true);
     try {
       let submitStatus = taskStatus;
-      if (!status) {
+      if (!status || chosenStatus !== undefined) {
         const workflow = await refetchColumns();
         if (!activeRef.current) return;
         if (workflow.isError || !workflow.data)
           throw new Error(t("common:modals.createTask.statusLoadError"));
-        submitStatus = getInitialTaskColumn(workflow.data)?.slug ?? "planned";
+        if (chosenStatus !== undefined) {
+          if (
+            chosenStatus !== "planned" &&
+            !getSelectableTaskColumns(workflow.data).some(
+              (column) => column.slug === chosenStatus,
+            )
+          ) {
+            throw new Error(t("common:modals.createTask.statusUnavailable"));
+          }
+          submitStatus = chosenStatus;
+        } else {
+          submitStatus = getInitialTaskColumn(workflow.data)?.slug ?? "planned";
+        }
       }
       didSubmitRef.current = true;
       const savedTask = normalizeTask(
@@ -557,6 +584,7 @@ function CreateTaskModalContent({
         setAssigneeId("");
         setStartDate(undefined);
         setDueDate(undefined);
+        setSelectedStatus(null);
         setLabels([]);
         setLabelsStep("select");
         setSearchValue("");
@@ -599,7 +627,6 @@ function CreateTaskModalContent({
 
   const selectedPriority = priorityOptions.find((p) => p.value === priority);
 
-  const statusLabel = getStatusDisplayLabel(taskStatus, initialColumn?.name);
   const selectedUser = workspaceUsers?.members?.find(
     (u) => u.userId === assigneeId,
   );
@@ -1086,7 +1113,10 @@ function CreateTaskModalContent({
 
             <div className="flex flex-wrap items-center gap-2 py-2">
               {!explicitProjectId && (
-                <Popover>
+                <Popover
+                  open={projectPickerOpen}
+                  onOpenChange={setProjectPickerOpen}
+                >
                   <PopoverTrigger asChild>
                     <button
                       type="button"
@@ -1123,6 +1153,10 @@ function CreateTaskModalContent({
                               !submittingRef.current
                             ) {
                               setSelectedProjectId(workspaceProject.id);
+                              if (workspaceProject.id !== resolvedProjectId) {
+                                setSelectedStatus(null);
+                              }
+                              setProjectPickerOpen(false);
                             }
                           }}
                         >
@@ -1138,16 +1172,25 @@ function CreateTaskModalContent({
                   </PopoverContent>
                 </Popover>
               )}
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-accent/50 text-foreground rounded-md text-xs font-medium border border-border">
-                {getColumnIcon(
-                  taskStatus,
-                  initialColumn?.isFinal,
-                  initialColumn?.icon,
-                )}
-                {statusLabel}
-              </div>
+              <CreateTaskStatusPicker
+                value={taskStatus}
+                columns={projectColumns}
+                isLoading={!projectColumns || columnsFetching}
+                isError={columnsError}
+                disabled={!resolvedProjectId || isSubmitting}
+                allowPlanned={
+                  status === "planned" || (!status && !initialColumn)
+                }
+                onChange={(slug) =>
+                  setSelectedStatus({ projectId: resolvedProjectId, slug })
+                }
+                onRetry={() => void refetchColumns()}
+              />
 
-              <Popover>
+              <Popover
+                open={startDatePickerOpen}
+                onOpenChange={setStartDatePickerOpen}
+              >
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -1170,7 +1213,10 @@ function CreateTaskModalContent({
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={setStartDate}
+                    onSelect={(date) => {
+                      setStartDate(date);
+                      setStartDatePickerOpen(false);
+                    }}
                     className="w-full bg-popover"
                   />
                   {startDate && (
@@ -1180,7 +1226,10 @@ function CreateTaskModalContent({
                         variant="outline"
                         size="sm"
                         className="w-full text-xs"
-                        onClick={() => setStartDate(undefined)}
+                        onClick={() => {
+                          setStartDate(undefined);
+                          setStartDatePickerOpen(false);
+                        }}
                       >
                         {t("common:modals.createTask.clearStartDate")}
                       </Button>
@@ -1189,7 +1238,10 @@ function CreateTaskModalContent({
                 </PopoverContent>
               </Popover>
 
-              <Popover>
+              <Popover
+                open={priorityPickerOpen}
+                onOpenChange={setPriorityPickerOpen}
+              >
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -1215,7 +1267,10 @@ function CreateTaskModalContent({
                         key={option.value}
                         type="button"
                         className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent/50 text-left transition-colors h-8"
-                        onClick={() => setPriority(option.value as Priority)}
+                        onClick={() => {
+                          setPriority(option.value as Priority);
+                          setPriorityPickerOpen(false);
+                        }}
                       >
                         {getPriorityIcon(option.value)}
                         <span className="text-sm">{option.label}</span>
@@ -1228,7 +1283,10 @@ function CreateTaskModalContent({
                 </PopoverContent>
               </Popover>
 
-              <Popover>
+              <Popover
+                open={assigneePickerOpen}
+                onOpenChange={setAssigneePickerOpen}
+              >
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -1265,7 +1323,10 @@ function CreateTaskModalContent({
                     <button
                       type="button"
                       className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent/50 text-left transition-colors h-8"
-                      onClick={() => setAssigneeId("")}
+                      onClick={() => {
+                        setAssigneeId("");
+                        setAssigneePickerOpen(false);
+                      }}
                     >
                       <div
                         className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center"
@@ -1287,7 +1348,10 @@ function CreateTaskModalContent({
                         key={member.userId}
                         type="button"
                         className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent/50 text-left transition-colors h-8"
-                        onClick={() => setAssigneeId(member.userId || "")}
+                        onClick={() => {
+                          setAssigneeId(member.userId || "");
+                          setAssigneePickerOpen(false);
+                        }}
                       >
                         <Avatar className="h-6 w-6">
                           <AvatarImage
@@ -1308,7 +1372,10 @@ function CreateTaskModalContent({
                 </PopoverContent>
               </Popover>
 
-              <Popover>
+              <Popover
+                open={dueDatePickerOpen}
+                onOpenChange={setDueDatePickerOpen}
+              >
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -1331,7 +1398,10 @@ function CreateTaskModalContent({
                   <Calendar
                     mode="single"
                     selected={dueDate}
-                    onSelect={setDueDate}
+                    onSelect={(date) => {
+                      setDueDate(date);
+                      setDueDatePickerOpen(false);
+                    }}
                     className="w-full bg-popover"
                   />
                   {dueDate && (
@@ -1341,7 +1411,10 @@ function CreateTaskModalContent({
                         variant="outline"
                         size="sm"
                         className="w-full text-xs"
-                        onClick={() => setDueDate(undefined)}
+                        onClick={() => {
+                          setDueDate(undefined);
+                          setDueDatePickerOpen(false);
+                        }}
                       >
                         {t("common:modals.createTask.clearDueDate")}
                       </Button>
