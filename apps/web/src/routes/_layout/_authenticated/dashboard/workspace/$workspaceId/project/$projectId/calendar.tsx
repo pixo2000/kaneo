@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { addMonths, startOfMonth, subMonths } from "date-fns";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CalendarToolbar from "@/components/calendar/calendar-toolbar";
 import MonthGrid from "@/components/calendar/month-grid";
@@ -13,6 +13,7 @@ import { useGetTasks } from "@/hooks/queries/task/use-get-tasks";
 import { useRegisterShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toScheduledTasks } from "@/lib/task-schedule";
+import useProjectStore from "@/store/project";
 import { useUserPreferencesStore } from "@/store/user-preferences";
 
 type CalendarSearchParams = {
@@ -45,6 +46,13 @@ function RouteComponent() {
   const [visibleMonth, setVisibleMonth] = useState(() =>
     startOfMonth(new Date()),
   );
+
+  const setProject = useProjectStore((state) => state.setProject);
+
+  // The task context menu reads columns from the project store.
+  useEffect(() => {
+    if (project) setProject(project);
+  }, [project, setProject]);
 
   const scheduledTasks = useMemo(() => toScheduledTasks(project), [project]);
 
