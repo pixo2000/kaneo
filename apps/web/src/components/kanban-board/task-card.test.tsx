@@ -149,6 +149,13 @@ vi.mock(
     }),
   }),
 );
+vi.mock("@/hooks/queries/workspace-users/use-get-project-members", () => ({
+  default: () => ({
+    data: [
+      { id: "user", name: "Alex", email: "alex@example.com", image: null },
+    ],
+  }),
+}));
 vi.mock(
   "@/hooks/queries/custom-field/use-get-custom-field-values-by-project",
   () => ({ default: () => ({ data: [] }) }),
