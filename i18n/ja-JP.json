@@ -2562,7 +2562,8 @@
 			"loadError": "タスクの読み込みに失敗しました。",
 			"dayTasksAriaLabel": "{{date}}のすべてのタスクを表示",
 			"taskAriaLabel": "{{title}}、{{range}}: タスクを開く",
-			"createTaskOnDay": "Create task on {{date}}"
+			"createTaskOnDay": "Create task on {{date}}",
+			"newTask": "New task"
 		},
 		"gantt": {
 			"pageTitle": "{{name}} – ガントチャート",

@@ -2687,7 +2687,8 @@
 			"title": "Lịch",
 			"today": "Hôm nay",
 			"loadError": "Không thể tải công việc.",
-			"createTaskOnDay": "Create task on {{date}}"
+			"createTaskOnDay": "Create task on {{date}}",
+			"newTask": "New task"
 		},
 		"descriptionSearchLoading": "Searching full descriptions…",
 		"descriptionSearchError": "Description search failed. Results may be incomplete.",

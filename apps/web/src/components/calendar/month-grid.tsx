@@ -1,8 +1,8 @@
 import { format, isSameMonth, isToday, isWeekend } from "date-fns";
 import { type JSX, useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
+import CalendarDayCell from "./calendar-day-cell";
 import CalendarTaskBar, { type CalendarTask } from "./calendar-task-bar";
 import DayOverflowPopover from "./day-overflow-popover";
 import { packWeekLanes } from "./month-grid-model";
@@ -28,7 +28,6 @@ export default function MonthGrid({
   onOpenTask,
   onSelectDays,
 }: MonthGridProps): JSX.Element {
-  const { t } = useTranslation();
   const weekdayTemplate = weeks[0] ?? [];
   const layouts = useMemo(
     () => weeks.map((week) => packWeekLanes(week, tasks, maxLanes)),
@@ -84,29 +83,14 @@ export default function MonthGrid({
                 }
 
                 return (
-                  <button
+                  <CalendarDayCell
                     key={`cell-${day.toISOString()}`}
-                    type="button"
-                    data-calendar-day={day.getTime()}
-                    aria-label={t("tasks:calendar.createTaskOnDay", {
-                      date: formatDate(day, {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      }),
-                    })}
+                    day={day}
                     style={cellStyle}
-                    onPointerDown={(event) => startSelection(day, event)}
-                    // Pointer selection fires on release; this only handles
-                    // keyboard activation, which reports no click count.
-                    onClick={(event) => {
-                      if (event.detail === 0) onSelectDays(day, day);
-                    }}
-                    className={cn(
-                      cellClassName,
-                      "cursor-pointer select-none transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                      isDaySelected(day) && "bg-primary/10 hover:bg-primary/10",
-                    )}
+                    className={cellClassName}
+                    isSelected={isDaySelected(day)}
+                    onPointerDown={startSelection}
+                    onSelect={(selected) => onSelectDays(selected, selected)}
                   />
                 );
               })}

@@ -2726,7 +2726,8 @@
 			"title": "Календар",
 			"today": "Сьогодні",
 			"loadError": "Не вдалося завантажити завдання.",
-			"createTaskOnDay": "Create task on {{date}}"
+			"createTaskOnDay": "Create task on {{date}}",
+			"newTask": "New task"
 		},
 		"descriptionSearchLoading": "Searching full descriptions…",
 		"descriptionSearchError": "Description search failed. Results may be incomplete.",

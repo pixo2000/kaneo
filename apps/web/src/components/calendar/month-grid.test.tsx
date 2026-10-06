@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import MonthGrid from "./month-grid";
 import { buildMonthWeeks } from "./month-grid-model";
@@ -82,6 +82,18 @@ describe("MonthGrid day selection", () => {
     const { container } = renderGrid(onSelectDays);
 
     fireEvent.click(dayCell(container, AUGUST_10), { detail: 0 });
+
+    expect(onSelectDays).toHaveBeenCalledWith(AUGUST_10, AUGUST_10);
+  });
+
+  it("creates a task from the day's context menu", async () => {
+    const onSelectDays = vi.fn();
+    const { container } = renderGrid(onSelectDays);
+
+    fireEvent.contextMenu(dayCell(container, AUGUST_10));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "tasks:calendar.newTask" }),
+    );
 
     expect(onSelectDays).toHaveBeenCalledWith(AUGUST_10, AUGUST_10);
   });
