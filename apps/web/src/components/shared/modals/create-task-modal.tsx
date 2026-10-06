@@ -1583,12 +1583,7 @@ function CreateTaskModalContent({
           <DialogFooter className="flex-shrink-0 border-t border-border bg-background px-6 py-4">
             <div className="flex items-center gap-3 mr-auto">
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                <input
-                  type="checkbox"
-                  checked={createMore}
-                  onChange={(e) => setCreateMore(e.target.checked)}
-                  className="rounded border-border bg-background text-primary focus:ring-ring focus:ring-offset-0 focus:ring-2 transition-[border-color,box-shadow]"
-                />
+                <Switch checked={createMore} onCheckedChange={setCreateMore} />
                 {t("common:modals.createTask.createMore")}
               </label>
             </div>

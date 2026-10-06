@@ -481,6 +481,26 @@ describe("CreateTaskModal", () => {
     );
   });
 
+  it("lets the Create more switch be turned on and off without submitting", async () => {
+    const onClose = vi.fn();
+    render(<CreateTaskModal open projectId="project-1" onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
+    const toggle = screen.getByRole("switch", {
+      name: "common:modals.createTask.createMore",
+    });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(toggle).toBeChecked();
+    fireEvent.click(screen.getByText("common:modals.createTask.createMore"));
+    expect(toggle).not.toBeChecked();
+    expect(createTask).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    enterTitle();
+    submit();
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  });
+
   it("resets the status to the supplied default when creating another task", async () => {
     projectColumns = [
       { id: "todo", slug: "to-do", name: "Ready", isFinal: false },
@@ -500,7 +520,7 @@ describe("CreateTaskModal", () => {
     );
     fireEvent.click(await screen.findByText("Review"));
     fireEvent.click(
-      screen.getByRole("checkbox", {
+      screen.getByRole("switch", {
         name: "common:modals.createTask.createMore",
       }),
     );
