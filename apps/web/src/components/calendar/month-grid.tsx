@@ -1,10 +1,12 @@
 import { format, isSameMonth, isToday, isWeekend } from "date-fns";
 import { type JSX, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import CalendarTaskBar, { type CalendarTask } from "./calendar-task-bar";
 import DayOverflowPopover from "./day-overflow-popover";
 import { packWeekLanes } from "./month-grid-model";
+import { useDayRangeSelection } from "./use-day-range-selection";
 
 type MonthGridProps = {
   weeks: Date[][];
@@ -13,6 +15,8 @@ type MonthGridProps = {
   maxLanes: number;
   projectSlug?: string;
   onOpenTask: (taskId: string) => void;
+  /** Omit to make the days read-only, e.g. without create permission. */
+  onSelectDays?: (from: Date, to: Date) => void;
 };
 
 export default function MonthGrid({
@@ -22,12 +26,15 @@ export default function MonthGrid({
   maxLanes,
   projectSlug,
   onOpenTask,
+  onSelectDays,
 }: MonthGridProps): JSX.Element {
+  const { t } = useTranslation();
   const weekdayTemplate = weeks[0] ?? [];
   const layouts = useMemo(
     () => weeks.map((week) => packWeekLanes(week, tasks, maxLanes)),
     [weeks, tasks, maxLanes],
   );
+  const { startSelection, isDaySelected } = useDayRangeSelection(onSelectDays);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto overscroll-x-contain">
@@ -56,22 +63,59 @@ export default function MonthGrid({
                 gridTemplateRows: `auto repeat(${maxLanes}, min-content) auto`,
               }}
             >
-              {week.map((day, dayIndex) => (
-                <div
-                  key={`cell-${day.toISOString()}`}
-                  style={{ gridColumn: dayIndex + 1, gridRow: "1 / -1" }}
-                  className={cn(
-                    "min-w-0 border-r border-border/60",
-                    isWeekend(day) && "bg-muted/25",
-                  )}
-                />
-              ))}
+              {week.map((day, dayIndex) => {
+                const cellStyle = {
+                  gridColumn: dayIndex + 1,
+                  gridRow: "1 / -1",
+                };
+                const cellClassName = cn(
+                  "min-w-0 border-r border-border/60",
+                  isWeekend(day) && "bg-muted/25",
+                );
+
+                if (!onSelectDays) {
+                  return (
+                    <div
+                      key={`cell-${day.toISOString()}`}
+                      style={cellStyle}
+                      className={cellClassName}
+                    />
+                  );
+                }
+
+                return (
+                  <button
+                    key={`cell-${day.toISOString()}`}
+                    type="button"
+                    data-calendar-day={day.getTime()}
+                    aria-label={t("tasks:calendar.createTaskOnDay", {
+                      date: formatDate(day, {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      }),
+                    })}
+                    style={cellStyle}
+                    onPointerDown={(event) => startSelection(day, event)}
+                    // Pointer selection fires on release; this only handles
+                    // keyboard activation, which reports no click count.
+                    onClick={(event) => {
+                      if (event.detail === 0) onSelectDays(day, day);
+                    }}
+                    className={cn(
+                      cellClassName,
+                      "cursor-pointer select-none transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                      isDaySelected(day) && "bg-primary/10 hover:bg-primary/10",
+                    )}
+                  />
+                );
+              })}
 
               {week.map((day, dayIndex) => (
                 <div
                   key={`number-${day.toISOString()}`}
                   style={{ gridColumn: dayIndex + 1, gridRow: 1 }}
-                  className="z-10 flex justify-end px-1 py-1"
+                  className="pointer-events-none z-10 flex justify-end px-1 py-1"
                 >
                   <span
                     className={cn(

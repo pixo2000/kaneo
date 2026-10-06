@@ -2725,7 +2725,8 @@
 			"taskAriaLabel": "{{title}}, {{range}}: відкрити завдання",
 			"title": "Календар",
 			"today": "Сьогодні",
-			"loadError": "Не вдалося завантажити завдання."
+			"loadError": "Не вдалося завантажити завдання.",
+			"createTaskOnDay": "Create task on {{date}}"
 		},
 		"descriptionSearchLoading": "Searching full descriptions…",
 		"descriptionSearchError": "Description search failed. Results may be incomplete.",

@@ -2573,7 +2573,8 @@
 			"moreTasks": "Daha +{{count}}",
 			"loadError": "Tapşırıqları yükləmək alınmadı.",
 			"dayTasksAriaLabel": "{{date}} tarixi üçün bütün tapşırıqları göstər",
-			"taskAriaLabel": "{{title}}, {{range}}: tapşırığı aç"
+			"taskAriaLabel": "{{title}}, {{range}}: tapşırığı aç",
+			"createTaskOnDay": "Create task on {{date}}"
 		},
 		"gantt": {
 			"pageTitle": "{{name}} – Qant diaqramı",

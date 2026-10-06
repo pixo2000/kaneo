@@ -2699,7 +2699,8 @@
 			"taskAriaLabel": "{{title}}, {{range}}: отвори задача",
 			"title": "Календар",
 			"today": "Денес",
-			"loadError": "Неуспешно вчитување на задачите."
+			"loadError": "Неуспешно вчитување на задачите.",
+			"createTaskOnDay": "Create task on {{date}}"
 		},
 		"descriptionSearchLoading": "Searching full descriptions…",
 		"descriptionSearchError": "Description search failed. Results may be incomplete.",

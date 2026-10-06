@@ -102,6 +102,8 @@ type CreateTaskModalProps = {
   onClose: () => void;
   status?: string;
   projectId?: string;
+  startDate?: Date;
+  dueDate?: Date;
 };
 
 type Priority = "no-priority" | "low" | "medium" | "high" | "urgent";
@@ -175,6 +177,8 @@ function CreateTaskModalContent({
   onClose,
   status,
   projectId,
+  startDate: initialStartDate,
+  dueDate: initialDueDate,
 }: CreateTaskModalProps) {
   const { t } = useTranslation();
   const { project, setProject } = useProjectStore();
@@ -250,8 +254,10 @@ function CreateTaskModalContent({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("no-priority");
   const [assigneeId, setAssigneeId] = useState("");
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    initialStartDate,
+  );
+  const [dueDate, setDueDate] = useState<Date | undefined>(initialDueDate);
   const [createMore, setCreateMore] = useState(false);
   const [labels, setLabels] = useState<Label[]>([]);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
@@ -383,8 +389,8 @@ function CreateTaskModalContent({
     description.trim() ||
     priority !== "no-priority" ||
     assigneeId ||
-    startDate ||
-    dueDate ||
+    startDate?.getTime() !== initialStartDate?.getTime() ||
+    dueDate?.getTime() !== initialDueDate?.getTime() ||
     selectedProjectId ||
     (chosenStatus !== undefined &&
       chosenStatus !== (status ?? initialColumn?.slug ?? "planned")) ||
@@ -582,8 +588,8 @@ function CreateTaskModalContent({
         setDescription("");
         setPriority("no-priority");
         setAssigneeId("");
-        setStartDate(undefined);
-        setDueDate(undefined);
+        setStartDate(initialStartDate);
+        setDueDate(initialDueDate);
         setSelectedStatus(null);
         setLabels([]);
         setLabelsStep("select");
