@@ -10,6 +10,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
 import type Task from "@/types/task";
 import TaskCard from "./task-card";
 import TaskRow from "../list-view/task-row";
+import BacklogTaskRow from "../backlog-list-view/backlog-task-row";
 
 const navigate = vi.fn();
 const dragStart = vi.fn();
@@ -45,16 +46,27 @@ vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: vi.fn() },
 }));
 vi.mock("@/store/project", () => ({
-  default: () => ({
-    project: {
-      id: "project",
-      slug: "PROJ",
-      columns: [
-        { id: "shared", slug: "shared", isFinal: true },
-        { id: "shared", slug: "shared", isFinal: false },
-      ],
-    },
-  }),
+  default: (
+    selector?: (state: {
+      project: {
+        id: string;
+        slug: string;
+        columns: { id: string; slug: string; isFinal: boolean }[];
+      };
+    }) => unknown,
+  ) => {
+    const state = {
+      project: {
+        id: "project",
+        slug: "PROJ",
+        columns: [
+          { id: "shared", slug: "shared", isFinal: true },
+          { id: "shared", slug: "shared", isFinal: false },
+        ],
+      },
+    };
+    return selector ? selector(state) : state;
+  },
 }));
 vi.mock("@/store/user-preferences", () => ({
   useUserPreferencesStore: (
@@ -178,7 +190,7 @@ const task: Task = {
 
 function renderCard(
   cardTask: Task = task,
-  viewMode: "board" | "list" = "board",
+  viewMode: "board" | "list" | "backlog" = "board",
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -187,6 +199,8 @@ function renderCard(
     <QueryClientProvider client={queryClient}>
       {viewMode === "board" ? (
         <TaskCard task={cardTask} isFinalColumn={false} />
+      ) : viewMode === "backlog" ? (
+        <BacklogTaskRow task={cardTask} />
       ) : (
         <TaskRow task={cardTask} projectSlug="PROJ" />
       )}
@@ -199,6 +213,8 @@ function renderCard(
         <QueryClientProvider client={queryClient}>
           {viewMode === "board" ? (
             <TaskCard task={{ ...cardTask }} isFinalColumn={false} />
+          ) : viewMode === "backlog" ? (
+            <BacklogTaskRow task={{ ...cardTask }} />
           ) : (
             <TaskRow task={{ ...cardTask }} projectSlug="PROJ" />
           )}
@@ -215,7 +231,7 @@ it("keeps details in the rendered open column despite a final column sharing its
   expect(screen.getByText("Open work")).toBeVisible();
 });
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "opens priority editing in %s without navigating or starting a drag and persists the selection",
   async (viewMode) => {
     renderCard(task, viewMode);
@@ -253,7 +269,7 @@ it.each(["board", "list"] as const)(
   },
 );
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "gives editable properties in %s persistent chips with hover, focus, and open highlights",
   (viewMode) => {
     renderCard(task, viewMode);
@@ -289,7 +305,7 @@ it.each(["board", "list"] as const)(
   },
 );
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "opens assignee editing in %s and supports assigning an unassigned task",
   async (viewMode) => {
     renderCard(task, viewMode);
@@ -344,6 +360,20 @@ it.each([
     "dueDate",
     "list",
   ],
+  [
+    "tasks:properties.startDate",
+    "tasks:popover.startDate.clear",
+    updateTask,
+    "startDate",
+    "backlog",
+  ],
+  [
+    "tasks:boardFilters.subjects.dueDate",
+    "tasks:popover.dueDate.clear",
+    updateDueDate,
+    "dueDate",
+    "backlog",
+  ],
 ] as const)(
   "opens and clears a visible date property (%s)",
   async (label, clear, mutate, field, viewMode) => {
@@ -363,7 +393,7 @@ it.each([
   },
 );
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "loads labels only on click in %s and keeps their multi-select editor open",
   async (viewMode) => {
     renderCard(task, viewMode);
@@ -395,7 +425,7 @@ it.each(["board", "list"] as const)(
   },
 );
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "preserves read-only tasks in %s without property editor buttons or queries",
   (viewMode) => {
     canEdit = false;
@@ -417,7 +447,7 @@ it.each(["board", "list"] as const)(
   },
 );
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "shows plain properties on mobile in %s and opens task details when tapped",
   (viewMode) => {
     isMobile = true;
@@ -438,7 +468,7 @@ it.each(["board", "list"] as const)(
   },
 );
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "closes an inline editor in %s when narrowing the screen and does not reopen it when widening",
   async (viewMode) => {
     const view = renderCard(task, viewMode);
@@ -465,6 +495,8 @@ it.each([
   ["tasks:boardFilters.subjects.dueDate", updateDueDate, "dueDate", "board"],
   ["tasks:properties.startDate", updateTask, "startDate", "list"],
   ["tasks:boardFilters.subjects.dueDate", updateDueDate, "dueDate", "list"],
+  ["tasks:properties.startDate", updateTask, "startDate", "backlog"],
+  ["tasks:boardFilters.subjects.dueDate", updateDueDate, "dueDate", "backlog"],
 ] as const)(
   "saves a selected %s and closes the calendar",
   async (label, mutate, field, viewMode) => {
@@ -514,7 +546,7 @@ it.each([
   },
 );
 
-it.each(["board", "list"] as const)(
+it.each(["board", "list", "backlog"] as const)(
   "respects assignment permission separately from task editing in %s",
   (viewMode) => {
     canAssign = false;
