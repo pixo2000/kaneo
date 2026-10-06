@@ -197,7 +197,7 @@ function TaskCardContent({
               <div className="absolute top-3 right-3">
                 <TaskCardProperty
                   label={t("tasks:boardFilters.subjects.assignee")}
-                  className="rounded-full p-1"
+                  variant="avatar"
                   canEdit={canAssign}
                   renderEditor={(trigger) => (
                     <TaskAssigneePopover

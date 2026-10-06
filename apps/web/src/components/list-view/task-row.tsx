@@ -308,7 +308,8 @@ function TaskRow({ task, projectSlug }: TaskRowProps) {
             {showAssignees && (
               <TaskPropertyTrigger
                 label={t("tasks:boardFilters.subjects.assignee")}
-                className="shrink-0 rounded-full p-1"
+                className="shrink-0"
+                variant="avatar"
                 canEdit={canAssign}
                 renderEditor={(trigger) => (
                   <TaskAssigneePopover

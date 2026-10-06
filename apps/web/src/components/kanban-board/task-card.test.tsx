@@ -273,9 +273,19 @@ it.each(["board", "list", "backlog"] as const)(
   "gives editable properties in %s persistent chips with hover, focus, and open highlights",
   (viewMode) => {
     renderCard(task, viewMode);
+    const assignee = screen.getByRole("button", {
+      name: "tasks:boardFilters.subjects.assignee",
+    });
+    expect(assignee).toHaveClass(
+      "rounded-full",
+      "hover:ring-2",
+      "aria-expanded:ring-2",
+      "motion-safe:active:not-focus-visible:scale-[0.97]",
+    );
+    expect(assignee).not.toHaveClass("bg-muted/40");
+    expect(assignee).not.toHaveClass("border");
     for (const name of [
       "High",
-      "tasks:boardFilters.subjects.assignee",
       "tasks:properties.labels",
       "tasks:properties.startDate",
       "tasks:boardFilters.subjects.dueDate",
@@ -297,11 +307,6 @@ it.each(["board", "list", "backlog"] as const)(
           "motion-safe:active:not-has-[button:active]:scale-[0.98]",
         );
     }
-    expect(
-      screen.getByRole("button", {
-        name: "tasks:boardFilters.subjects.assignee",
-      }),
-    ).toHaveClass("rounded-full", "p-1");
   },
 );
 
