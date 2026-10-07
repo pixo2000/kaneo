@@ -8,6 +8,7 @@ import {
 } from "../../database/schema";
 import { publishEvent } from "../../events";
 import { assertProjectAccess } from "../../project-access/assert-project-access";
+import { assertSubtaskAcyclic } from "../assert-subtask-acyclic";
 
 async function createTaskRelation({
   sourceTaskId,
@@ -86,6 +87,10 @@ async function createTaskRelation({
     }
 
     await assertProjectAccess(userId, targetTask.projectId);
+
+    if (relationType === "subtask") {
+      await assertSubtaskAcyclic(tx, workspaceId, sourceTaskId, targetTaskId);
+    }
 
     const existing = await tx
       .select({ id: taskRelationTable.id })

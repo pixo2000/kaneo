@@ -49,6 +49,144 @@ async function seedRelation(sourceTaskId: string, targetTaskId: string) {
 }
 
 describe("task relation tenant boundaries", () => {
+  it("rejects subtask linking and unlinking for read-only members", async () => {
+    const member = await createWorkspaceMember({ role: "viewer" });
+    const { project } = await createProjectFixture({
+      workspaceId: member.workspace.id,
+    });
+    const tasks = await db
+      .insert(schema.taskTable)
+      .values([
+        { projectId: project.id, title: "Parent", number: 1 },
+        { projectId: project.id, title: "Child", number: 2 },
+      ])
+      .returning();
+    mockAuthenticatedSession(member.user);
+    expect(
+      (
+        await request("", "POST", {
+          sourceTaskId: tasks[0].id,
+          targetTaskId: tasks[1].id,
+          relationType: "subtask",
+        })
+      ).status,
+    ).toBe(403);
+    const [relation] = await db
+      .insert(schema.taskRelationTable)
+      .values({
+        sourceTaskId: tasks[0].id,
+        targetTaskId: tasks[1].id,
+        relationType: "subtask",
+      })
+      .returning();
+    expect((await request(`/${relation.id}`, "DELETE")).status).toBe(403);
+    expect(await db.query.taskRelationTable.findMany()).toHaveLength(1);
+    expect(m.publish).not.toHaveBeenCalled();
+  });
+
+  it("links an existing child and unlinks it without deleting either task", async () => {
+    const own = await context();
+    const [child] = await db
+      .insert(schema.taskTable)
+      .values({
+        projectId: own.task.projectId,
+        title: "Existing child",
+        number: 2,
+        status: "planned",
+      })
+      .returning();
+    mockAuthenticatedSession(own.user);
+    const created = await request("", "POST", {
+      sourceTaskId: own.task.id,
+      targetTaskId: child.id,
+      relationType: "subtask",
+    });
+    expect(created.status).toBe(200);
+    const relation = (await created.json()) as { id: string };
+    for (const task of [own.task, child]) {
+      const response = await request(`/${task.id}`, "GET");
+      expect(await response.json()).toMatchObject([
+        {
+          sourceTaskId: own.task.id,
+          targetTaskId: child.id,
+          relationType: "subtask",
+        },
+      ]);
+    }
+    expect(m.publish).toHaveBeenCalledWith(
+      "task-relation.created",
+      expect.objectContaining({
+        sourceTaskId: own.task.id,
+        targetTaskId: child.id,
+      }),
+    );
+    expect((await request(`/${relation.id}`, "DELETE")).status).toBe(200);
+    expect(await db.query.taskTable.findMany()).toHaveLength(2);
+    expect(await db.query.taskRelationTable.findMany()).toHaveLength(0);
+  });
+
+  it("rejects self-links and indirect circular subtask hierarchies", async () => {
+    const own = await context();
+    const others = await db
+      .insert(schema.taskTable)
+      .values([
+        { projectId: own.task.projectId, title: "Child", number: 2 },
+        { projectId: own.task.projectId, title: "Grandchild", number: 3 },
+      ])
+      .returning();
+    mockAuthenticatedSession(own.user);
+    const link = (sourceTaskId: string, targetTaskId: string) =>
+      request("", "POST", {
+        sourceTaskId,
+        targetTaskId,
+        relationType: "subtask",
+      });
+    expect((await link(own.task.id, own.task.id)).status).toBe(400);
+    expect((await link(own.task.id, others[0].id)).status).toBe(200);
+    expect((await link(others[0].id, others[1].id)).status).toBe(200);
+    m.publish.mockClear();
+    const circular = await link(others[1].id, own.task.id);
+    expect(circular.status).toBe(400);
+    expect(await circular.text()).toBe(
+      "A subtask relation cannot create a circular hierarchy",
+    );
+    expect(await db.query.taskRelationTable.findMany()).toHaveLength(2);
+    expect(m.publish).not.toHaveBeenCalled();
+  });
+
+  it("serializes concurrent links that would jointly create a cycle", async () => {
+    const own = await context();
+    const others = await db
+      .insert(schema.taskTable)
+      .values([
+        { projectId: own.task.projectId, title: "Child", number: 2 },
+        { projectId: own.task.projectId, title: "Grandchild", number: 3 },
+      ])
+      .returning();
+    mockAuthenticatedSession(own.user);
+    await request("", "POST", {
+      sourceTaskId: own.task.id,
+      targetTaskId: others[0].id,
+      relationType: "subtask",
+    });
+    const responses = await Promise.all([
+      request("", "POST", {
+        sourceTaskId: others[0].id,
+        targetTaskId: others[1].id,
+        relationType: "subtask",
+      }),
+      request("", "POST", {
+        sourceTaskId: others[1].id,
+        targetTaskId: own.task.id,
+        relationType: "subtask",
+      }),
+    ]);
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      200, 400,
+    ]);
+    expect(await db.query.taskRelationTable.findMany()).toHaveLength(2);
+  });
+
   it("rejects a foreign target and a nonexistent target identically", async () => {
     const own = await context();
     const foreign = await context();

@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   updateStatus: vi.fn(),
   navigate: vi.fn(),
   toastError: vi.fn(),
+  deleteRelation: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -45,6 +46,9 @@ vi.mock("@/hooks/mutations/task/use-create-task", () => ({
 }));
 vi.mock("@/hooks/mutations/task-relation/use-create-task-relation", () => ({
   default: () => ({ mutateAsync: mocks.createRelation }),
+}));
+vi.mock("@/hooks/mutations/task-relation/use-delete-task-relation", () => ({
+  default: () => ({ mutateAsync: mocks.deleteRelation, isPending: false }),
 }));
 vi.mock("@/hooks/mutations/task/use-delete-task", () => ({
   useDeleteTask: () => ({ mutateAsync: vi.fn() }),
@@ -76,6 +80,11 @@ vi.mock("@/hooks/use-workspace-permission", () => ({
 vi.mock("@/lib/toast", () => ({
   toast: { error: mocks.toastError, success: vi.fn() },
 }));
+vi.mock("./subtask-link-picker", () => ({
+  default: ({ direction }: { direction: "parent" | "child" }) => (
+    <div role="dialog" aria-label={`Choose ${direction}`} />
+  ),
+}));
 
 beforeEach(() => {
   mocks.getRelations.mockReturnValue({ data: [] });
@@ -96,6 +105,55 @@ afterEach(() => {
 });
 
 describe("TaskSubtasks", () => {
+  it("opens the parent picker from the subtask section", () => {
+    render(
+      <TaskSubtasks
+        taskId="child"
+        projectId="project-1"
+        workspaceId="workspace-1"
+        parentStatus="planned"
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "tasks:subtasks.chooseParent" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Choose parent" }),
+    ).toBeInTheDocument();
+  });
+  it("allows linking existing tasks without task-create permission", () => {
+    mocks.canCreateTasks.mockReturnValue(false);
+    render(
+      <TaskSubtasks
+        taskId="parent-1"
+        projectId="project-1"
+        workspaceId="workspace-1"
+        parentStatus="planned"
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "tasks:subtasks.addExisting" }),
+    ).toBeEnabled();
+  });
+
+  it("hides linking without task-update permission", () => {
+    mocks.canUpdateTasks.mockReturnValue(false);
+    render(
+      <TaskSubtasks
+        taskId="parent-1"
+        projectId="project-1"
+        workspaceId="workspace-1"
+        parentStatus="planned"
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "tasks:subtasks.addExisting" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "tasks:subtasks.chooseParent" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("creates a subtask as planned when its parent is planned", async () => {
     mocks.createTask.mockResolvedValue({ id: "subtask-1" });
     mocks.createRelation.mockResolvedValue({});
@@ -211,6 +269,7 @@ vi.mock("./subtask-row", () => ({
     isCompleted,
     onToggleComplete,
     onNavigate,
+    onUnlink,
   }: ComponentProps<typeof SubtaskRow>) => (
     <>
       <button
@@ -223,6 +282,9 @@ vi.mock("./subtask-row", () => ({
       </button>
       <button type="button" onClick={onNavigate}>
         Open child
+      </button>
+      <button type="button" onClick={onUnlink}>
+        Unlink child
       </button>
     </>
   ),
@@ -264,6 +326,16 @@ function renderCrossProjectChild(isCompleted: boolean) {
   );
 }
 describe("cross-project subtask progress", () => {
+  it("unlinks an existing child without deleting the task", async () => {
+    mocks.deleteRelation.mockResolvedValue({});
+    renderCrossProjectChild(false);
+    fireEvent.click(screen.getByRole("button", { name: "Unlink child" }));
+    await waitFor(() =>
+      expect(mocks.deleteRelation).toHaveBeenCalledWith("relation"),
+    );
+    expect(mocks.createTask).not.toHaveBeenCalled();
+  });
+
   it.each([true, false])(
     "agrees with the board for completion=%s in a different workflow",
     (completed) => {
