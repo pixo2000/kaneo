@@ -8,6 +8,7 @@ import {
   customFieldDefinitionTable,
   customFieldValueTable,
   taskTable,
+  taskRelationTable,
   projectTable,
   userTable,
 } from "../../database/schema";
@@ -57,6 +58,7 @@ async function createTask({
   priority,
   customFields,
   draftAssetIds,
+  parentTaskId,
 }: {
   projectId: string;
   currentUserId: string;
@@ -69,6 +71,7 @@ async function createTask({
   priority?: string;
   customFields?: CustomFieldInput[];
   draftAssetIds?: string[];
+  parentTaskId?: string;
 }) {
   const resolvedStatus = status || "to-do";
   const resolvedPriority = priority || "no-priority";
@@ -132,82 +135,115 @@ async function createTask({
     ),
   });
 
-  const createdTask = await db.transaction(async (tx) => {
-    const taskNumber = await claimTaskNumber(projectId, tx);
-    const nextPosition = await nextTaskPosition(
-      tx,
-      projectId,
-      resolvedStatus,
-      column?.id ?? null,
-    );
-
-    const [task] = await tx
-      .insert(taskTable)
-      .values({
-        projectId,
-        userId: normalizedUserId ?? null,
-        title: title || "",
-        status: resolvedStatus,
-        columnId: column?.id ?? null,
-        startDate: startDate || null,
-        dueDate: dueDate || null,
-        description: description || "",
-        priority: resolvedPriority,
-        number: taskNumber,
-        position: nextPosition,
-      })
-      .returning();
-
-    if (task && draftAssetIds?.length) {
-      const referenced = extractAssetIds(description);
-      const ids = [...new Set(draftAssetIds)].filter((id) =>
-        referenced.has(id),
-      );
-      if (ids.length) {
-        // claimTaskNumber already holds the project row lock in this transaction.
-        const project = await tx.query.projectTable.findFirst({
-          columns: { workspaceId: true },
-          where: eq(projectTable.id, projectId),
-        });
-        if (!project)
-          throw new HTTPException(404, { message: "Project not found" });
-        const claimed = await tx
-          .update(assetTable)
-          .set({
-            taskId: task.id,
-            surface: "description",
-            workspaceId: project.workspaceId,
-          })
+  const { createdTask, relation, parents } = await db.transaction(
+    async (tx) => {
+      const taskNumber = await claimTaskNumber(projectId, tx);
+      let parents: { id: string; title: string }[] = [];
+      if (parentTaskId) {
+        const [parent] = await tx
+          .select({ id: taskTable.id, title: taskTable.title })
+          .from(taskTable)
           .where(
             and(
-              inArray(assetTable.id, ids),
-              eq(assetTable.projectId, projectId),
-              eq(assetTable.createdBy, currentUserId),
-              eq(assetTable.surface, "draft"),
-              isNull(assetTable.taskId),
+              eq(taskTable.id, parentTaskId),
+              eq(taskTable.projectId, projectId),
             ),
           )
-          .returning({ id: assetTable.id });
-        if (claimed.length !== ids.length)
+          .for("share");
+        if (!parent) {
           throw new HTTPException(400, {
-            message:
-              "Some staged uploads are unavailable or belong to another owner/project",
+            message: "Parent task is unavailable in this project",
           });
+        }
+        parents = [parent];
       }
-    }
-
-    if (task && mergedCustomFields.length) {
-      await tx.insert(customFieldValueTable).values(
-        mergedCustomFields.map(({ fieldId, value }) => ({
-          taskId: task.id,
-          fieldId,
-          value: value.trim(),
-        })),
+      const nextPosition = await nextTaskPosition(
+        tx,
+        projectId,
+        resolvedStatus,
+        column?.id ?? null,
       );
-    }
 
-    return task;
-  });
+      const [task] = await tx
+        .insert(taskTable)
+        .values({
+          projectId,
+          userId: normalizedUserId ?? null,
+          title: title || "",
+          status: resolvedStatus,
+          columnId: column?.id ?? null,
+          startDate: startDate || null,
+          dueDate: dueDate || null,
+          description: description || "",
+          priority: resolvedPriority,
+          number: taskNumber,
+          position: nextPosition,
+        })
+        .returning();
+
+      if (task && draftAssetIds?.length) {
+        const referenced = extractAssetIds(description);
+        const ids = [...new Set(draftAssetIds)].filter((id) =>
+          referenced.has(id),
+        );
+        if (ids.length) {
+          // claimTaskNumber already holds the project row lock in this transaction.
+          const project = await tx.query.projectTable.findFirst({
+            columns: { workspaceId: true },
+            where: eq(projectTable.id, projectId),
+          });
+          if (!project)
+            throw new HTTPException(404, { message: "Project not found" });
+          const claimed = await tx
+            .update(assetTable)
+            .set({
+              taskId: task.id,
+              surface: "description",
+              workspaceId: project.workspaceId,
+            })
+            .where(
+              and(
+                inArray(assetTable.id, ids),
+                eq(assetTable.projectId, projectId),
+                eq(assetTable.createdBy, currentUserId),
+                eq(assetTable.surface, "draft"),
+                isNull(assetTable.taskId),
+              ),
+            )
+            .returning({ id: assetTable.id });
+          if (claimed.length !== ids.length)
+            throw new HTTPException(400, {
+              message:
+                "Some staged uploads are unavailable or belong to another owner/project",
+            });
+        }
+      }
+
+      if (task && mergedCustomFields.length) {
+        await tx.insert(customFieldValueTable).values(
+          mergedCustomFields.map(({ fieldId, value }) => ({
+            taskId: task.id,
+            fieldId,
+            value: value.trim(),
+          })),
+        );
+      }
+
+      const [relation] =
+        task && parentTaskId
+          ? await tx
+              .insert(taskRelationTable)
+              .values({
+                sourceTaskId: parentTaskId,
+                targetTaskId: task.id,
+                relationType: "subtask",
+              })
+              .returning()
+          : [];
+
+      return { createdTask: task, relation, parents };
+    },
+  );
 
   if (!createdTask) {
     throw new HTTPException(500, {
@@ -224,9 +260,19 @@ async function createTask({
     content: null,
   });
 
+  if (relation) {
+    await publishEvent("task-relation.created", {
+      ...relation,
+      taskId: relation.sourceTaskId,
+      projectId,
+      userId: currentUserId,
+    });
+  }
+
   return {
     ...createdTask,
     assigneeName: assignee?.name,
+    subtaskParents: parents,
   };
 }
 

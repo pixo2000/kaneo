@@ -10154,6 +10154,12 @@
 					"type": "object",
 					"additionalProperties": false,
 					"properties": {
+						"create": {
+							"type": "string"
+						},
+						"parentIndicator": {
+							"type": "string"
+						},
 						"unlink": {
 							"type": "string"
 						},
@@ -10231,6 +10237,8 @@
 						}
 					},
 					"required": [
+						"create",
+						"parentIndicator",
 						"unlink",
 						"chooseParent",
 						"removeParent",

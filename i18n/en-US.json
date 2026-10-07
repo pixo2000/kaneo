@@ -2508,6 +2508,8 @@
 			}
 		},
 		"subtasks": {
+			"create": "Create sub-task",
+			"parentIndicator": "Sub-task of {{title}}",
 			"unlink": "Unlink",
 			"chooseParent": "Choose parent task",
 			"removeParent": "Remove parent {{title}}",

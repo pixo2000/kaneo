@@ -82,6 +82,10 @@ export const createTaskBody = z.object({
   status: z.string().openapi({ description: "The target column's slug." }),
   userId: z.string().optional().openapi({ description: "Assignee, if any." }),
   draftAssetIds: z.array(z.string()).max(100).optional(),
+  parentTaskId: z.string().min(1).optional().openapi({
+    description:
+      "Create and link a subtask atomically. The parent must be in the same project; requires task:update in addition to task:create.",
+  }),
   customFields: z
     .array(z.object({ fieldId: z.string(), value: z.string() }))
     .optional(),

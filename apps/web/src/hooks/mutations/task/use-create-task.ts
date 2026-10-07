@@ -20,6 +20,7 @@ function useCreateTask() {
       priority,
       customFields,
       draftAssetIds,
+      parentTaskId,
     }: CreateTaskRequest) =>
       createTask(
         title,
@@ -32,11 +33,20 @@ function useCreateTask() {
         priority,
         customFields,
         draftAssetIds,
+        parentTaskId,
       ),
     onSuccess: (_data, variables) => {
       invalidateMyWork(queryClient);
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
       trackFirstTask();
+      if (variables.parentTaskId) {
+        void queryClient.invalidateQueries({
+          queryKey: ["task-relations", variables.parentTaskId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["task", variables.parentTaskId],
+        });
+      }
       void queryClient.invalidateQueries({
         queryKey: ["tasks", variables.projectId],
       });

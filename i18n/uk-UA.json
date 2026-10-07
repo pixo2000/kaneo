@@ -2561,7 +2561,9 @@
 			"searchPlaceholder": "Search tasks by title or ID...",
 			"searchPrompt": "Search for a task in this workspace",
 			"unlinkError": "Failed to remove parent",
-			"unlink": "Unlink"
+			"unlink": "Unlink",
+			"create": "Create sub-task",
+			"parentIndicator": "Sub-task of {{title}}"
 		},
 		"properties": {
 			"title": "Властивості",

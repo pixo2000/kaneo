@@ -283,7 +283,7 @@ const createTaskRoute = createRoute({
   tags: ["Tasks"],
   summary: "Create task",
   description:
-    "Add a task to a project. It is placed in the column named by `status`.",
+    "Add a task to a project. It is placed in the column named by `status`. With parentTaskId, create and link a subtask in the same transaction; the parent must belong to this project and task:update is also required.",
   middleware: [
     workspaceAccess.fromProject("projectId"),
     requireWorkspacePermission({ task: ["create"] }),
@@ -300,7 +300,7 @@ const createTaskRoute = createRoute({
     200: jsonResponse("The created task", taskSchema),
     400: errorResponse("Invalid body, or unknown project"),
     403: errorResponse(
-      "No workspace access, or missing task:create permission",
+      "No workspace access, or missing task:create or task:update permission",
     ),
   },
 });
@@ -885,7 +885,17 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
       userId,
       customFields,
       draftAssetIds,
+      parentTaskId,
     } = c.req.valid("json");
+
+    if (
+      parentTaskId &&
+      !(await hasWorkspacePermission(c, { task: ["update"] }))
+    ) {
+      throw new HTTPException(403, {
+        message: "Linking a subtask requires task:update permission",
+      });
+    }
 
     const parsedStartDate =
       startDate !== undefined
@@ -910,6 +920,7 @@ const task = apiRouter<BaseVariables & { workspaceId: string }>()
       status,
       customFields,
       draftAssetIds,
+      parentTaskId,
     });
 
     return c.json(task, 200);
