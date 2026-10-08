@@ -1,1 +1,0 @@
-I am not just botting the repo and did check the code that I am responsible for. (Altough i hate large reviews and don't have much experience so please tell me if its shit and why so i can learn as i don't have very much experience)
