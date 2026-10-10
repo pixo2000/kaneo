@@ -269,7 +269,7 @@ jobs:
   homebrew:
     name: Update Homebrew tap
     needs: [check, release]
-    if: needs.check.outputs.prerelease == 'false'
+    if: ${{ !cancelled() && needs.check.result == 'success' && needs.check.outputs.prerelease == 'false' && (needs.release.result == 'success' || needs.check.outputs.release_exists == 'true') }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
