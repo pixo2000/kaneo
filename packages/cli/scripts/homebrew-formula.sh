@@ -18,6 +18,10 @@ sha() {
       exit 1
       ;;
   esac
+  if [ "${#value}" -ne 64 ]; then
+    echo "The checksum for $1 in $sums is not a SHA-256 digest" >&2
+    exit 1
+  fi
   printf '%s' "$value"
 }
 
