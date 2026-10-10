@@ -385,8 +385,8 @@
 			"projectNameHint": "Dodamy kilka zadań na start, żeby łatwiej było się odnaleźć.",
 			"starterTasks": {
 				"drag": {
-					"title": "Przeciągnij tę kartę do W trakcie",
-					"description": "Karty przesuwają się po tablicy wraz z postępem pracy. Przeciągnij tę do **W trakcie** albo otwórz ją i zmień jej status."
+					"title": "Przeciągnij tę kartę do następnej kolumny",
+					"description": "Karty przechodzą z kolumny do kolumny wraz z postępem pracy. Przeciągnij tę do następnej kolumny albo otwórz ją i zmień jej status."
 				},
 				"details": {
 					"title": "Otwórz to zadanie i dodaj podzadanie",

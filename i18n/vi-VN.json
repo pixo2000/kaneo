@@ -382,8 +382,8 @@
 			"projectNameHint": "Chúng tôi sẽ thêm vài nhiệm vụ khởi đầu để giúp bạn làm quen.",
 			"starterTasks": {
 				"drag": {
-					"title": "Kéo thẻ này sang Đang thực hiện",
-					"description": "Các thẻ di chuyển trên bảng khi công việc tiến triển. Kéo thẻ này sang **Đang thực hiện**, hoặc mở nó và đổi trạng thái."
+					"title": "Kéo thẻ này sang cột tiếp theo",
+					"description": "Các thẻ chuyển từ cột này sang cột khác khi công việc tiến triển. Kéo thẻ này sang cột tiếp theo, hoặc mở nó và đổi trạng thái."
 				},
 				"details": {
 					"title": "Mở nhiệm vụ này và thêm một nhiệm vụ con",

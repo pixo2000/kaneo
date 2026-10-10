@@ -384,8 +384,8 @@
 			"projectNameHint": "Aggiungeremo alcune attività iniziali per aiutarti a orientarti.",
 			"starterTasks": {
 				"drag": {
-					"title": "Trascina questa scheda in In Corso",
-					"description": "Le schede avanzano sulla bacheca man mano che il lavoro procede. Trascina questa in **In Corso**, oppure aprila e cambia il suo stato."
+					"title": "Trascina questa scheda nella colonna successiva",
+					"description": "Le schede passano da una colonna all'altra man mano che il lavoro procede. Trascina questa nella colonna successiva, oppure aprila e cambia il suo stato."
 				},
 				"details": {
 					"title": "Apri questa attività e aggiungi una sottoattività",

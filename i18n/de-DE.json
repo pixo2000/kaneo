@@ -383,8 +383,8 @@
 			"projectNameHint": "Wir legen ein paar Starter-Aufgaben an, damit du dich schnell zurechtfindest.",
 			"starterTasks": {
 				"drag": {
-					"title": "Zieh diese Karte nach In Bearbeitung",
-					"description": "Karten wandern über das Board, während die Arbeit vorankommt. Zieh diese Karte nach **In Bearbeitung** oder öffne sie und ändere ihren Status."
+					"title": "Zieh diese Karte in die nächste Spalte",
+					"description": "Karten wandern von Spalte zu Spalte, während die Arbeit vorankommt. Zieh diese Karte in die nächste Spalte oder öffne sie und ändere ihren Status."
 				},
 				"details": {
 					"title": "Öffne diese Aufgabe und füge eine Unteraufgabe hinzu",

@@ -383,8 +383,8 @@
 			"projectNameHint": "We voegen een paar starttaken toe om je op weg te helpen.",
 			"starterTasks": {
 				"drag": {
-					"title": "Sleep deze kaart naar In behandeling",
-					"description": "Kaarten schuiven over het bord naarmate het werk vordert. Sleep deze naar **In behandeling**, of open hem en wijzig de status."
+					"title": "Sleep deze kaart naar de volgende kolom",
+					"description": "Kaarten schuiven van kolom naar kolom naarmate het werk vordert. Sleep deze naar de volgende kolom, of open hem en wijzig de status."
 				},
 				"details": {
 					"title": "Open deze taak en voeg een subtaak toe",

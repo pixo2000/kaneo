@@ -55,7 +55,9 @@ export function HomeProjects({
               {t("workspace:projects.emptyTitle")}
             </p>
             <p className="text-muted-foreground text-sm">
-              {t("workspace:projects.emptyDescription")}
+              {onCreateProject
+                ? t("workspace:projects.emptyDescription")
+                : t("workspace:projects.emptyDescriptionReadOnly")}
             </p>
           </div>
           {onCreateProject ? (

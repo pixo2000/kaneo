@@ -383,8 +383,8 @@
 			"projectNameHint": "Yolunuzu bulmanız için birkaç başlangıç görevi ekleyeceğiz.",
 			"starterTasks": {
 				"drag": {
-					"title": "Bu kartı Devam Ediyor sütununa sürükleyin",
-					"description": "İş ilerledikçe kartlar panoda ilerler. Bu kartı **Devam Ediyor** sütununa sürükleyin ya da açıp durumunu değiştirin."
+					"title": "Bu kartı bir sonraki sütuna sürükleyin",
+					"description": "İş ilerledikçe kartlar sütundan sütuna geçer. Bu kartı bir sonraki sütuna sürükleyin ya da açıp durumunu değiştirin."
 				},
 				"details": {
 					"title": "Bu görevi açın ve bir alt görev ekleyin",

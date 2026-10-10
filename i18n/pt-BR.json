@@ -384,8 +384,8 @@
 			"projectNameHint": "Vamos adicionar algumas tarefas iniciais para você se orientar.",
 			"starterTasks": {
 				"drag": {
-					"title": "Arraste este cartão para Em Andamento",
-					"description": "Os cartões avançam pelo quadro conforme o trabalho anda. Arraste este para **Em Andamento**, ou abra-o e mude o status."
+					"title": "Arraste este cartão para a próxima coluna",
+					"description": "Os cartões passam de coluna em coluna conforme o trabalho anda. Arraste este para a próxima coluna, ou abra-o e mude o status."
 				},
 				"details": {
 					"title": "Abra esta tarefa e adicione uma subtarefa",

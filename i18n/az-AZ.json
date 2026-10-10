@@ -383,8 +383,8 @@
 			"projectNameHint": "Sizə yol göstərmək üçün bir neçə başlanğıc tapşırıq əlavə edəcəyik.",
 			"starterTasks": {
 				"drag": {
-					"title": "Bu kartı İcra olunur sütununa sürükləyin",
-					"description": "İş irəlilədikcə kartlar lövhədə hərəkət edir. Bunu **İcra olunur** sütununa sürükləyin və ya açıb statusunu dəyişin."
+					"title": "Bu kartı növbəti sütuna sürükləyin",
+					"description": "İş irəlilədikcə kartlar sütundan sütuna keçir. Bunu növbəti sütuna sürükləyin və ya açıb statusunu dəyişin."
 				},
 				"details": {
 					"title": "Bu tapşırığı açın və alt tapşırıq əlavə edin",

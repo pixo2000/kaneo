@@ -384,8 +384,8 @@
 			"projectNameHint": "Nous ajouterons quelques tâches de démarrage pour vous guider.",
 			"starterTasks": {
 				"drag": {
-					"title": "Faites glisser cette carte vers En cours",
-					"description": "Les cartes avancent sur le tableau au fil du travail. Faites glisser celle-ci vers **En cours**, ou ouvrez-la et changez son statut."
+					"title": "Faites glisser cette carte vers la colonne suivante",
+					"description": "Les cartes passent de colonne en colonne au fil du travail. Faites glisser celle-ci vers la colonne suivante, ou ouvrez-la et changez son statut."
 				},
 				"details": {
 					"title": "Ouvrez cette tâche et ajoutez une sous-tâche",

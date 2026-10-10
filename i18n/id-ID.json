@@ -382,8 +382,8 @@
 			"projectNameHint": "Kami akan menambahkan beberapa tugas awal untuk membantu Anda memulai.",
 			"starterTasks": {
 				"drag": {
-					"title": "Seret kartu ini ke Sedang Berjalan",
-					"description": "Kartu bergerak di papan seiring pekerjaan berjalan. Seret kartu ini ke **Sedang Berjalan**, atau buka dan ubah statusnya."
+					"title": "Seret kartu ini ke kolom berikutnya",
+					"description": "Kartu berpindah dari kolom ke kolom seiring pekerjaan berjalan. Seret kartu ini ke kolom berikutnya, atau buka dan ubah statusnya."
 				},
 				"details": {
 					"title": "Buka tugas ini dan tambahkan subtugas",

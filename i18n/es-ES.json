@@ -384,8 +384,8 @@
 			"projectNameHint": "Añadiremos algunas tareas de ejemplo para que te orientes.",
 			"starterTasks": {
 				"drag": {
-					"title": "Arrastra esta tarjeta a En progreso",
-					"description": "Las tarjetas avanzan por el tablero a medida que avanza el trabajo. Arrastra esta a **En progreso**, o ábrela y cambia su estado."
+					"title": "Arrastra esta tarjeta a la siguiente columna",
+					"description": "Las tarjetas pasan de columna en columna a medida que avanza el trabajo. Arrastra esta a la siguiente columna, o ábrela y cambia su estado."
 				},
 				"details": {
 					"title": "Abre esta tarea y añade una subtarea",
