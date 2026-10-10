@@ -24,9 +24,10 @@ Windows (PowerShell):
 irm https://kaneo.app/cli/install.ps1 | iex
 ```
 
-With Node.js 20 or newer:
+With Homebrew, or with npm and Node.js 20 or newer:
 
 ```bash
+brew install usekaneo/tap/kaneo
 npm install -g @kaneo/cli
 ```
 
@@ -48,7 +49,7 @@ curl -fsSL https://kaneo.app/cli/install.sh | KANEO_DOWNLOAD_URL=https://mirror.
 $env:KANEO_VERSION = "0.1.0"; irm https://kaneo.app/cli/install.ps1 | iex
 ```
 
-To update, run the install command again, or `npm install -g @kaneo/cli@latest` for an npm install. To uninstall, delete the binary, and `~/.config/kaneo` too if you want to remove your logins.
+To update, run the install command again, `brew upgrade kaneo` for Homebrew, or `npm install -g @kaneo/cli@latest` for npm. To uninstall, delete the binary, and `~/.config/kaneo` too if you want to remove your logins.
 
 Prefer the script to downloading a binary from the release page with a browser: the macOS builds are signed ad hoc but not notarized, so Gatekeeper can block browser downloads. On Alpine and other musl distributions, install the C++ runtime first with `apk add libstdc++`. See the [install guide](https://kaneo.app/docs/cli/install) for mirrors, offline installs and supported systems.
 
